@@ -1,3 +1,4 @@
+
 from sklearn import metrics 
 from sklearn.tree import DecisionTreeClassifier 
 from sklearn import linear_model
@@ -36,13 +37,16 @@ df2['SalePrice'] = df1['SalePrice']
 # Convert categorical variable into dummy/indicator variables.
 # pd.get_dummies(df)
 
+
+# ------------------- Model ------------------- #
 # Linear regression
 regression_model = linear_model.LinearRegression()
 X = df2.drop("SalePrice", axis=1)
 Y = df2.SalePrice
 regression_model.fit(X, Y)
 
-plt.scatter(X, Y,color='g')
-plt.plot(X, regression_model.predict(X),color='k')
+# ------------------- Visualization ------------------- #
 
+plt.scatter(X.Id, Y,color='g')
+plt.plot(X.Id, regression_model.predict(X),color='k')
 plt.show()
