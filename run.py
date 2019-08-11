@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split, cross_val_score, GridSearc
 from data_preparation import clean_data, clean_data_train, encode_to_categorical
 from model_validation import get_cross_validation_r2_score, get_cross_validation_RMSLE, get_RMSLE
 from models_preparation import initialize_model
-from data_visualization import plot, plot_distribution
+from data_visualization import plot, plot_distribution, missing_data_ratio, correlation_heatmap
 
  # Limit floats output to 2 decimal points
 pd.set_option('display.float_format', lambda x: '{:.2f}'.format(x))
@@ -46,36 +46,44 @@ def get_random_forest_best_parameters_by_grid_search(X, Y):
     return best_params
 
 # ------------------- Submission ------------------- #
-# df_test_raw = load_dataset(path = "test.csv")
-# cleaned_test_data = clean_data(house_dataset = df_test_raw)
-# encoded_test_data = encode_to_categorical(cleaned_test_data)
-
-# predictedPrice = regression_model.predict(encoded_test_data)
-
-# submission = pd.DataFrame()
-# submission['Id'] = encoded_test_data.Id
-# submission['SalePrice'] = predictedPrice
-
-# submission.to_csv("submission.csv", index=False)
-
-
+def create_submission_file(model, x_test, x_test_ids) :
+    predicted_price = model.predict(x_test)
+    submission = pd.DataFrame()
+    submission['Id'] = x_test_ids
+    submission['SalePrice'] = np.expm1(predicted_price)
+    submission.to_csv("submission.csv", index=False)
 
 def main() :
-    # Clean and encode data
     data_raw = load_dataset(path = "train.csv")
-    data_cleaned = clean_data(data_raw)
+    # test.csv doesn't have the labels, can't be used for training, but can be for filling missing values
+    data_test_raw = load_dataset(path = "test.csv")
+    test_ids = data_test_raw['Id']
+    ntrain = data_raw.shape[0]
+
+    all_data = pd.concat((data_raw, data_test_raw)).reset_index(drop=True)
+    print("all_data size is : {}".format(all_data.shape))
+
+    print("missing data before cleaning : ", missing_data_ratio(all_data))
+    data_cleaned = clean_data(all_data)
+    print("missing data after cleaning : ", missing_data_ratio(data_cleaned))
+
     data_cleaned_encoded = encode_to_categorical(data_cleaned)
     data_cleaned_encoded.drop('Id', axis=1, inplace = True)
-    # print(data_cleaned_encoded['SalePrice'].describe())
-    # Split data
-    df_train, df_test = train_test_split(data_cleaned_encoded, test_size=0.2)
+
+    # Separate back the two datasets to get the one with the target variable
+    train_data_cleaned_encoded = data_cleaned_encoded[:ntrain]
+    test_data_cleaned_encoded = data_cleaned_encoded[ntrain:]
+    test_data_cleaned_encoded.drop('SalePrice', axis=1, inplace = True)
+
+    # Split train and test data
+    df_train, df_test = train_test_split(train_data_cleaned_encoded, test_size=0.2)
     clean_data_train(df_train)
 
-    x = data_cleaned_encoded.drop("SalePrice", axis=1)
+    x = train_data_cleaned_encoded.drop("SalePrice", axis=1)
     x_train = df_train.drop("SalePrice", axis=1)
     x_test = df_test.drop("SalePrice", axis=1)
 
-    y = data_cleaned_encoded.SalePrice
+    y = train_data_cleaned_encoded.SalePrice
     y_train = df_train.SalePrice
     y_test = df_test.SalePrice
 
@@ -90,7 +98,8 @@ def main() :
     print(y_test[:5])
     print(y_pred[:5])
     print("Cross validation R2 : ", get_cross_validation_r2_score(regression_model, x, y))
-    print("Cross validation neg mean squared log error : ", get_cross_validation_r2_score(regression_model, x, y))
+    print("Cross validation neg mean squared log error : ", get_cross_validation_RMSLE(regression_model, x, y))
+    print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred)))
 
     print("------- Random Forest -------")
     # random_forest_model = initialize_model("random_forest", parameters = get_random_forest_best_parameters_by_grid_search(x, y))
@@ -105,6 +114,8 @@ def main() :
     # np.expm1 to apply the reverse transformation applied to y_train to remove skew
     print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred)))
     print("End")
+
+    create_submission_file(model = random_forest_model, x_test = test_data_cleaned_encoded, x_test_ids = test_ids)
 
 if __name__== "__main__":
   main()
