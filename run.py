@@ -101,7 +101,8 @@ def main() :
     x_train = df_train.drop("SalePrice", axis=1)
     x_test = df_test.drop("SalePrice", axis=1)
 
-    #  -------- Model Comparison --------
+    #  -------------- Model Comparison --------------
+
     # print("------- Linear Regression -------")
     # regression_model = initialize_model("linear_regression")
     # regression_model.fit(x_train, y_train)
@@ -130,11 +131,11 @@ def main() :
     y_pred_lasso = lasso_model.predict(x_test)
     print("y_test = ", y_test.head(5))
     print("y_pred = ", np.expm1(y_pred_lasso[:5]))
-    print("Mean Absolute Error : ", get_mean_absolute_error(y_true = y_test, y_pred = np.expm1(y_pred_lasso[:5])))
-    print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred_lasso)))
-    print("Cross validation mean R2 : ", get_cross_validation_r2_score(lasso_model, x, y).mean())
-    print("Cross validation mean RMSLE : ", get_cross_validation_RMSLE(lasso_model, x, y).mean())
-    print("Custom CV mean error : ", rmsle_cv(lasso_model, x, y).mean())
+    print("Mean Absolute Error : ", get_mean_absolute_error(y_true = y_test, y_pred = np.expm1(y_pred_lasso)))
+    # print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred_lasso)))
+    # print("Cross validation mean R2 : ", get_cross_validation_r2_score(lasso_model, x, y).mean())
+    # print("Cross validation mean RMSLE : ", get_cross_validation_RMSLE(lasso_model, x, y).mean())
+    # print("Custom CV mean error : ", rmsle_cv(lasso_model, x, y).mean())
 
     print("------- XGBoost -------")
     xgboost_model = initialize_model("xgboost")
@@ -143,14 +144,14 @@ def main() :
     print("y_test = ", y_test.head(5))
     print("y_pred = ", np.expm1(y_pred_xgboost[:5]))
     print("Mean Absolute Error : ", get_mean_absolute_error(y_true = y_test, y_pred = np.expm1(y_pred_xgboost)))
-    print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred_xgboost)))
-    print("Cross validation mean R2 : ", get_cross_validation_r2_score(xgboost_model, x, y).mean())
-    print("Cross validation mean RMSLE : ", get_cross_validation_RMSLE(xgboost_model, x, y).mean())
-    print("Custom CV mean error : ", rmsle_cv(xgboost_model, x, y).mean())
+    # print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred_xgboost)))
+    # print("Cross validation mean R2 : ", get_cross_validation_r2_score(xgboost_model, x, y).mean())
+    # print("Cross validation mean RMSLE : ", get_cross_validation_RMSLE(xgboost_model, x, y).mean())
+    # print("Custom CV mean error : ", rmsle_cv(xgboost_model, x, y).mean())
 
     print("------- Model Stacking -------")
     stacking_model = initialize_model("stack")
-    # stacking_model.fit(x_train, y_train)
+    stacking_model.fit(x_train, y_train)
     y_pred_stacking_model = stacking_model.predict(x_test)
     print("Mean Absolute Error : ", get_mean_absolute_error(y_true = y_test, y_pred = np.expm1(y_pred_stacking_model)))
     # print("RMSLE : ", get_RMSLE(y_true = y_test, y_pred = np.expm1(y_pred_stacking_model)))
@@ -176,3 +177,4 @@ if __name__== "__main__":
 # Analyze XGBoost and try default parameters
 # Generate other features
 # Create a helper function to pretty print model various scores, also print variance of each model
+# Use downsampling to handle imbalanced data.

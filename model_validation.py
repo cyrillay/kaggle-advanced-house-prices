@@ -39,7 +39,7 @@ def pretty_print_scores(models, x, y) :
         rmsle = get_cross_validation_RMSLE(model = model, x = x, y = y)
         r2_scores = get_cross_validation_r2_score(model = model, x = x, y = y)
         custom = rmsle_cv(model, x, y)
-        new_line = [model_name] + list(rmsle.mean(), r2_scores.mean(), custom.mean(), custom.std()))
+        new_line = [model_name] + list((rmsle.mean(), r2_scores.mean(), custom.mean(), custom.std()))
         print("new line = ", new_line)
         df.loc[i] = new_line
     
