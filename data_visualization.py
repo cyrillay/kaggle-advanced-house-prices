@@ -47,3 +47,7 @@ def correlation_heatmap(house_dataset) :
         xticklabels=corrmat.columns,
         yticklabels=corrmat.columns)
     plt.show()
+
+def pretty_print(df) : 
+    with pd.option_context('display.max_rows', 5, 'display.max_columns', 90):  # more options can be specified also
+        print(df)

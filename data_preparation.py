@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 from sklearn import preprocessing
 import numpy as np
+import pandas as pd
+from scipy.stats import norm, skew
+from scipy.special import boxcox1p
 
 # Handles missing values, or irrelevant features
 def clean_data(house_dataset) :
@@ -61,22 +64,52 @@ def clean_data(house_dataset) :
 
     # We assume Na means no building class. We replace missing values with None
     df['MSSubClass'] = df['MSSubClass'].fillna("None")
-
     return df
 
 def encode_to_categorical(house_dataset) :
-    # Encode the strings with numerical value
-    # TODO : don't encode everything : encode based on colum type ?
+    df = house_dataset
+    print('spppp : ', house_dataset['SalePrice'])
+    # MSSubClass=The building class
+    df['MSSubClass'] = df['MSSubClass'].apply(str)
+    # Changing OverallCond into a categorical variable
+    df['OverallCond'] = df['OverallCond'].astype(str)
+    # Year and month sold are transformed into categorical features.
+    df['YrSold'] = df['YrSold'].astype(str)
+    df['MoSold'] = df['MoSold'].astype(str)
+
+    categorical_labels = ('FireplaceQu', 'BsmtQual', 'BsmtCond', 'GarageQual', 'GarageCond', 
+        'ExterQual', 'ExterCond','HeatingQC', 'PoolQC', 'KitchenQual', 'BsmtFinType1', 
+        'BsmtFinType2', 'Functional', 'Fence', 'BsmtExposure', 'GarageFinish', 'LandSlope',
+        'LotShape', 'PavedDrive', 'Street', 'Alley', 'CentralAir', 'MSSubClass', 'OverallCond', 
+        'YrSold', 'MoSold')
+
     encoder = preprocessing.LabelEncoder()
-    # labels = house_dataset['SalePrice']
-    X = house_dataset.loc[:, ~house_dataset.columns.isin(['Id', 'SalePrice'])]
-    X_encoded = X.apply(encoder.fit_transform)
-    X_encoded['Id'] = house_dataset.Id
-    house_dataset.loc[:, ~house_dataset.columns.isin(['Id', 'SalePrice'])] = X_encoded
-    return house_dataset
+    labels = house_dataset['SalePrice'].copy()
+
+    # apply LabelEncoder to categorical features
+    for c in categorical_labels :
+        encoder.fit(list(df[c].values)) 
+        df[c] = encoder.transform(list(df[c].values))
+
+    # leftovers columns that are not encoded
+    # TODO : double check this logic
+    numeric_feats = df.dtypes[df.dtypes != "object"].index
+    # get skew of each non encoded feature
+    skewed_feats = df[numeric_feats].apply(lambda x: skew(x.dropna())).sort_values(ascending=False)
+    skewness = pd.DataFrame({'Skew' :skewed_feats})
+    skewed_features = skewness[abs(skewness['Skew']) > 0.75].index # TODO : cross validate best threshold, be even more aggressive ? 
+
+    lambda_skew = 0.15 # TODO cross-validate
+    for feat in skewed_features:
+        df[feat] = boxcox1p(df[feat], lambda_skew)
+
+    res = pd.get_dummies(df)
+    print("shape :",res.shape)
+    res['SalePrice'] = labels
+    return res
 
 # Training specific processing
-def clean_data_train(house_dataset_train) : 
+def unskew_target_variable(house_dataset_train) : 
     # Apply log(1+x) to the target variable to remove the skew
     updated_column = house_dataset_train.loc[:, 'SalePrice'].copy().apply(lambda x: np.log1p(x))
     house_dataset_train.loc[:, 'SalePrice'] = updated_column
@@ -86,3 +119,9 @@ def clean_data_train(house_dataset_train) :
 # Even if test doesn't have the target variable and can't be used for training, 
 # its features can help deduce the missing values
 # def fill_missing_data(house_dataset) : 
+
+def feature_engineering(house_dataset) :
+    # Adding total sqfootage feature 
+    df = house_dataset
+    df['TotalSF'] = df['TotalBsmtSF'] + df['1stFlrSF'] + df['2ndFlrSF']
+    return df
